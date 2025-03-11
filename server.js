@@ -65,33 +65,6 @@ app.put("/products/:id", async (req, res) => {
   }
 });
 
-app.put("/order/:oid/:uid", async (req, res) => {
-    const { oid , uid } = req.params;
-    const { date } = req.body;
-    console.log(date);
-    if (!date) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
-  
-    try {
-      const [result] = await db.query(
-        "SELECT * FROM Orders WHERE Orders.order_id = ? AND Orders.user_id = ?",
-        [oid,uid]
-      );
-      console.log(result);
-      if (result.length == 0) {
-        res.json({ message: "Order does not exits" });
-      } else {
-        await db.query("UPDATE Orders SET order_date = ? WHERE Orders.order_id = ? AND Orders.user_id = ?", [
-            date,oid,uid
-        ]);
-        res.json({ message: "Order updated completely" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
 // 🟢 ทดสอบการดึงข้อมูลจากตาราง User
 app.get("/users", async (req, res) => {
   try {
@@ -104,12 +77,13 @@ app.get("/users", async (req, res) => {
 });
 
 app.get("/users/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(req.params);
   try {
-    const id = req.params.id;
-    console.log(req.params);
-    const [rows] = await db.query("SELECT * FROM User WHERE User.user_id=?", [
-      id,
-    ]);
+    const [rows] = await db.query(
+      "SELECT * FROM Orders WHERE Orders.user_id=?",
+      [id]
+    );
     if (rows.length == 0) {
       res.json({ message: "User does not exits" });
     } else {
@@ -132,9 +106,9 @@ app.get("/products", async (req, res) => {
 });
 
 app.get("/products/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(req.params);
   try {
-    const id = req.params.id;
-    console.log(req.params);
     const [rows] = await db.query(
       "SELECT * FROM Product WHERE Product.product_id=?",
       [id]
@@ -151,14 +125,87 @@ app.get("/products/:id", async (req, res) => {
 });
 
 app.get("/order", async (req, res) => {
-    try {
-      const [rows] = await db.query("SELECT * FROM Orders");
-      res.json(rows);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      res.status(500).json({ error: "Database error" });
-    }
-  });
+  try {
+    const [rows] = await db.query("SELECT * FROM Orders");
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/order/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(req.params);
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM Orders WHERE Orders.order_id = ?",
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/order/user/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(req.params);
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM Orders WHERE Orders.user_id = ?",
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+
+
+
+app.get("/orderdt", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT * FROM OrderDetail ",);
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/orderdt/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(req.params);
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM OrderDetail WHERE OrderDetail.order_id = ?",
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.get("/orderdt/user/:id", async (req, res) => {
+  const id = req.params.id;
+  console.log(req.params);
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM OrderDetail WHERE OrderDetail.user_id = ?",
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 // 🟢 ทดสอบการเพิ่ม User
 app.post("/users", async (req, res) => {
@@ -169,7 +216,7 @@ app.post("/users", async (req, res) => {
       "INSERT INTO User (name, email, password) VALUES (?, ?, ?)",
       [name, email, password]
     );
-    res.json({ message: "User created", userId: result.insertId });
+    res.json({ message: "User created", userID: result.insertId });
   } catch (err) {
     console.error("Error inserting user:", err);
     res.status(500).json({ error: "Database error" });
@@ -185,7 +232,41 @@ app.post("/products", async (req, res) => {
       [name, price]
     );
     console.log(result);
-    res.json({ message: "Product created", productId: result.insertId });
+    res.json({ message: "Product created", productID: result.insertId });
+  } catch (err) {
+    console.error("Error inserting user:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.post("/order/:id", async (req, res) => {
+  const id = req.params.id;
+  const { date } = req.body;
+  console.log(req.body);
+  try {
+    const [result] = await db.query(
+      "INSERT INTO Orders (user_id, order_date) VALUES (?, ?)",
+      [id,date]
+    );
+    console.log(result);
+    res.json({ message: "Order created", orderID: result.insertId });
+  } catch (err) {
+    console.error("Error inserting user:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.post("/orderdt/:id", async (req, res) => {
+  const id = req.params.id;
+  const { quantity } = req.body;
+  console.log(req.body);
+  try {
+    const [result] = await db.query(
+      "INSERT INTO OrderDetail (product_id, quantity) VALUES (?, ?)",
+      [id,quantity]
+    );
+    console.log(result);
+    res.json({ message: "OrderDetail created", orderID: result.insertId });
   } catch (err) {
     console.error("Error inserting user:", err);
     res.status(500).json({ error: "Database error" });
@@ -225,6 +306,47 @@ app.delete("/users/:id", async (req, res) => {
     } else {
       await db.query("DELETE FROM User WHERE User.user_id = ?", [id]);
       res.json({ message: `User ID:${id} deleted ` });
+    }
+  } catch (err) {
+    console.error("Error inserting user:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+
+app.delete("/order/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const [result] = await db.query(
+      "SELECT * FROM Orders WHERE Orders.order_id =?",
+      [id]
+    );
+    console.log(result);
+    if (result.length == 0) {
+      res.json({ message: `Order ID:${id} does not exits` });
+    } else {
+      await db.query("DELETE FROM Orders WHERE Orders.order_id = ?", [id]);
+      res.json({ message: `Order ID:${id} deleted ` });
+    }
+  } catch (err) {
+    console.error("Error inserting user:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+app.delete("/orderdt/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const [result] = await db.query(
+      "SELECT * FROM OrderDetail WHERE OrderDetail.order_id =?",
+      [id]
+    );
+    console.log(result);
+    if (result.length == 0) {
+      res.json({ message: `OrderDetail ID:${id} does not exits` });
+    } else {
+      await db.query("DELETE FROM OrderDetail WHERE OrderDetail.order_id = ?", [id]);
+      res.json({ message: `OrderDetail ID:${id} deleted ` });
     }
   } catch (err) {
     console.error("Error inserting user:", err);
